@@ -20,88 +20,88 @@ type GenesisChainCode struct{}
 
 // Data Models
 type BasicInfo struct {
-	salutation  string
-	firstName   string
-	middleName  string
-	lastName    string
-	dateofBirth uint64
-	gender      string
-	ssn         string
-	verified    bool
+	Salutation  string
+	FirstName   string
+	MiddleName  string
+	LastName    string
+	DateOfBirth uint64
+	Gender      string
+	SSN         string
+	Verified    bool
 }
 
 type Address struct {
-	street1  string
-	street2  string
-	city     string
-	state    string
-	country  string
-	zip      string
-	verified bool
-	active   bool
+	Street1  string
+	Street2  string
+	City     string
+	State    string
+	Country  string
+	Zip      string
+	Verified bool
+	Active   bool
 }
 
 type Contact struct {
-	contactType  string
-	phoneNumber  string
-	emailAddress string
-	verified     bool
-	active       bool
+	ContactType  string
+	PhoneNumber  string
+	EmailAddress string
+	Verified     bool
+	Active       bool
 }
 
 type Employment struct {
-	employmentType string
-	companyName    string
-	street1        string
-	street2        string
-	city           string
-	state          string
-	country        string
-	zip            string
-	designation    string
-	startDate      uint64
-	endDate        uint64
-	isCurrent      bool
-	grossSalary    int
-	verified       bool
-	active         bool
+	EmploymentType string
+	CompanyName    string
+	Street1        string
+	Street2        string
+	City           string
+	State          string
+	Country        string
+	Zip            string
+	Designation    string
+	StartDate      uint64
+	EndDate        uint64
+	IsCurrent      bool
+	GrossSalary    int
+	Verified       bool
+	Active         bool
 }
 
 type BankAccounts struct {
-	accountNo      string
-	bankName       string
-	bankBranchName string
-	street1        string
-	street2        string
-	city           string
-	state          string
-	country        string
-	zip            string
-	active         bool
+	AccountNo      string
+	BankName       string
+	BankBranchName string
+	Street1        string
+	Street2        string
+	City           string
+	State          string
+	Country        string
+	Zip            string
+	Active         bool
 }
 
 type CustomerDocument struct {
-	documentType string
-	documentId   string
-	active       bool
+	DocumentType string
+	DocumentId   string
+	Active       bool
 }
 
 type BankTransaction struct {
-	transactionId   string
-	transactionDate uint32
-	transactionType string
-	description     string
-	amount          int
+	TransactionID   string
+	TransactionDate uint32
+	TransactionType string
+	Description     string
+	Amount          int
 }
 
 type Customer struct {
-	id               string
-	basicInfo        BasicInfo
-	addresses        []Address
-	contacts         []Contact
-	documents        []CustomerDocument
-	bankAccounts     []BankAccounts
-	bankTransactions []BankTransaction
+	ID               string
+	BasicInfo        BasicInfo
+	Addresses        []Address
+	Contacts         []Contact
+	Documents        []CustomerDocument
+	BankAccounts     []BankAccounts
+	BankTransactions []BankTransaction
 }
 
 // =====================================
@@ -133,6 +133,8 @@ func (t *GenesisChainCode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 	// Route to the appropriate handler function to interact with the ledger appropriately
 	if function == "registerCustomer" {
 		return t.registerCustomer(stub, args)
+	} else if function == "updateCustomer" {
+		return t.updateCustomer(stub, args)
 	} else if function == "queryCustomer" {
 		return t.queryCustomer(stub, args)
 	}
@@ -149,24 +151,28 @@ func (t *GenesisChainCode) Invoke(stub shim.ChaincodeStubInterface) pb.Response 
 // =====================================
 func (t *GenesisChainCode) registerCustomer(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 
-	if len(args) != 3 {
+	if len(args) != 4 {
 		return shim.Error("Customer basic information, address and contact must be provided for registration")
 	}
 
-	var basicInfo BasicInfo
-	var address Address
-	var contact Contact
+	basicInfo := BasicInfo{}
+	address := Address{}
+	contact := Contact{}
 
-	json.Unmarshal([]byte(args[0]), &basicInfo)
-	json.Unmarshal([]byte(args[1]), &address)
-	json.Unmarshal([]byte(args[2]), &contact)
+	json.Unmarshal([]byte(args[1]), &basicInfo)
+	json.Unmarshal([]byte(args[2]), &address)
+	json.Unmarshal([]byte(args[3]), &contact)
 
-	customer := Customer{basicInfo: basicInfo, addresses: []Address{address}, contacts: []Contact{contact}}
+	customer := Customer{BasicInfo: basicInfo, Addresses: []Address{address}, Contacts: []Contact{contact}}
 	customerAsBytes, _ := json.Marshal(customer)
+
+	fmt.Println(string(customerAsBytes))
+
 	stub.PutState(args[0], customerAsBytes)
 
 	return shim.Success(nil)
 }
+
 // =====================================
 // Update Customer
 // This method will update the data of the customer. It must be made flexible
@@ -179,55 +185,50 @@ func (t *GenesisChainCode) updateCustomer(stub shim.ChaincodeStubInterface, args
 		return shim.Error("Incorrect number of arguments. Expecting 3")
 	}
 
-	
 	info := args[0]
 	operation := args[1]
-	
+
 	customerJSONAsBytes, err := stub.GetState(args[2])
-		if err != nil {
-			jsonResp := "{\"Error\":\"Failed to get state for " + args[2] + "\"}"
-			return nil, errors.New(jsonResp)
-		}
-		customer := Customer{}
-		json.Unmarshal(customerJSONAsBytes, &customer)
-		fmt.Println("CHAINCODE: After Unmarshalling customer")
-		
-switch {
+	if err != nil {
+		//jsonResp := "{\"Error\":\"Failed to get state for " + args[2] + "\"}"
+		return shim.Error("Incorrect number of arguments. Expecting 3")
+	}
+	customer := Customer{}
+	json.Unmarshal(customerJSONAsBytes, &customer)
+	fmt.Println("CHAINCODE: After Unmarshalling customer")
+
+	switch {
 	case info == "BasicInfo":
-		
+
 		basicInfo := BasicInfo{}
 		json.Unmarshal([]byte(args[3]), &basicInfo)
 		fmt.Println("CHAINCODE: After Unmarshalling basicInfo")
-		
-		customer.basicInfo=basicInfo
+
+		customer.BasicInfo = basicInfo
 		fmt.Println("CHAINCODE: Writing customer back to ledger")
 		jsonAsBytes, _ := json.Marshal(customer)
-		err = stub.PutState(customer.id, jsonAsBytes)
+		err = stub.PutState(args[2], jsonAsBytes)
 		if err != nil {
-			return nil, err
+			return shim.Error(err.Error())
 		}
-
-		
-
-		
 
 	case info == "Address":
-		addresses := Address{}
+		addresses := []Address{}
 		json.Unmarshal([]byte(args[3]), &addresses)
 		fmt.Println("CHAINCODE: After Unmarshalling basicInfo")
-	
-		if(oper=="add") {
-		
-			v.addresses=append(customer.addresses, addresses...)
+
+		if operation == "add" {
+
+			customer.Addresses = append(customer.Addresses, addresses...)
 		} else {
-			v.addresses=addresses
+			//customer.addresses = addresses
 		}
-		
+
 		fmt.Println("CHAINCODE: Writing customer back to ledger")
 		jsonAsBytes, _ := json.Marshal(customer)
-		err = stub.PutState(customer.id, jsonAsBytes)
+		err = stub.PutState(customer.ID, jsonAsBytes)
 		if err != nil {
-			return nil, err
+			return shim.Error(err.Error())
 		}
 
 	case info == "Contact":
@@ -239,9 +240,7 @@ switch {
 	default:
 		fmt.Println("Good evening.")
 	}
-	return nil, nil
-	//carAsBytes, _ := stub.GetState(args[0])
-	//return shim.Success(carAsBytes)
+	return shim.Success(nil)
 }
 
 // =====================================
@@ -251,6 +250,10 @@ switch {
 // the type of information requested
 // =====================================
 func (t *GenesisChainCode) queryCustomer(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-
+	customerJSONAsBytes, err := stub.GetState(args[0])
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	fmt.Println(string(customerJSONAsBytes))
 	return shim.Success(nil)
 }
